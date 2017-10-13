@@ -24,8 +24,9 @@ var swaggerDefinition = {
     version: '1.0.0',
     description: '',
   },
-  host: 'https://election-master-service.herokuapp.com',
+  host: 'election-master-service.herokuapp.com',
   basePath: '/',
+  schemes: 'https'
 };
 
 // options for the swagger docs
