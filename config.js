@@ -8,7 +8,7 @@ nconf.env(['PORT', 'NODE_ENV'])
       alias: 'NODE_ENV',
       describe: 'Set production or development mode.',
       demand: false,
-      default: 'development'
+      default: 'production'
     },
     'p': {
       alias: 'PORT',
