@@ -24,7 +24,7 @@ var swaggerDefinition = {
     version: '1.0.0',
     description: '',
   },
-  host: 'localhost:4000',
+  host: 'https://election-master-service.herokuapp.com',
   basePath: '/',
 };
 
