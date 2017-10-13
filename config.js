@@ -24,12 +24,12 @@ nconf.env(['PORT', 'NODE_ENV'])
     }
   })
   .defaults({
-    'USERNAME': 'app77251898-uwVpwB',
-    'PASSWORD' : 'b.LnHauo0IZ4rT.rTedr9L2YxSZVftq',
+    'USERNAME': 'election-master',
+    'PASSWORD' : 'b.5CiCwMlzWaeQ.TfVHLxzjmcU1X3ag',
     'neo4j': 'local',
     'neo4j-local': 'bolt://localhost:7687',
-    'neo4j-remote': 'bolt://hobby-dhklhpfkojekgbkeomighcpl.dbs.graphenedb.com:24786',
-    'base_url': 'http://app77251898-uwVpwB:b.LnHauo0IZ4rT.rTedr9L2YxSZVftq@hobby-dhklhpfkojekgbkeomighcpl.dbs.graphenedb.com:24789',
+    'neo4j-remote': 'bolt://hobby-pbkeelmchinmgbkemkoagepl.dbs.graphenedb.com:24786',
+    'base_url': 'http://hobby-pbkeelmchinmgbkemkoagepl.dbs.graphenedb.com:24789/db/data/',
     'api_path': '/api/v0'
   });
   // .defaults({
