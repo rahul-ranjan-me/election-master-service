@@ -11,7 +11,8 @@ var express = require('express')
   , writeError = require('./helpers/response').writeError;
 
 var users = require('./routes/users')
-  , party = require('./routes/party');
+  , party = require('./routes/party')
+  , level = require('./routes/level');
 
 var app = express()
   , api = express();
@@ -24,7 +25,7 @@ var swaggerDefinition = {
     version: '1.0.0',
     description: '',
   },
-  host: 'election-master-service.herokuapp.com',
+  host: 'election-master-service.herokuapp.com', //'localhost:4000', //'election-master-service.herokuapp.com',
   basePath: '/',
   schemes: 'https'
 };
@@ -64,12 +65,11 @@ api.use(function(req, res, next) {
 //api custom middlewares:
 api.use(setAuthUser);
 api.use(neo4jSessionCleanup);
+
 //api routes
-// api.post('/register', routes.users.register);
-// api.post('/login', routes.users.login);
-// api.get('/users/me', routes.users.me);
-api.use('/party', party)
 api.use('/users', users)
+api.use('/party', party)
+api.use('/level', level)
 
 //api error handler
 api.use(function(err, req, res, next) {
