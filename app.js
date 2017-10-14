@@ -12,7 +12,9 @@ var express = require('express')
 
 var users = require('./routes/users')
   , party = require('./routes/party')
-  , level = require('./routes/level');
+  , level = require('./routes/level')
+  , role = require('./routes/role')
+  , entity = require('./routes/entity')
 
 var app = express()
   , api = express();
@@ -70,6 +72,8 @@ api.use(neo4jSessionCleanup);
 api.use('/users', users)
 api.use('/party', party)
 api.use('/level', level)
+api.use('/role', role)
+api.use('/entity', entity)
 
 //api error handler
 api.use(function(err, req, res, next) {

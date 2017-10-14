@@ -24,8 +24,8 @@ nconf.env(['PORT', 'NODE_ENV'])
     }
   })
   .defaults({
-    'USERNAME': 'election-master', //'neo4j', //
-    'PASSWORD' : 'b.5CiCwMlzWaeQ.TfVHLxzjmcU1X3ag', //'123', //
+    'USERNAME': 'election-master', //'election-master', //'neo4j'
+    'PASSWORD' : 'b.5CiCwMlzWaeQ.TfVHLxzjmcU1X3ag', //'b.5CiCwMlzWaeQ.TfVHLxzjmcU1X3ag', '123'
     'neo4j': 'local',
     'neo4j-local': 'bolt://localhost:7687',
     'neo4j-remote': 'bolt://hobby-pbkeelmchinmgbkemkoagepl.dbs.graphenedb.com:24786',

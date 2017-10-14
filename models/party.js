@@ -18,13 +18,8 @@ var create = function (session, partyname) {
             partyname: partyname
           }
         ).then(results => {
-            return session.run('DELETE party RETURN party')
-            .then(results => {
-                return new Party(results.records[0].get('party'));
-              }
-            )
-          }
-        )
+          return new Party(results.records[0].get('party'));
+        });
       }
     });
 };
