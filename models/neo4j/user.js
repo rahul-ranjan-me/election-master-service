@@ -3,12 +3,13 @@
 var _ = require('lodash');
 var md5 = require('md5');
 
-var User = module.exports = function (_node) {
+var Volunteer = module.exports = function (_node) {
   var username = _node.properties['username'];
 
   _.extend(this, {
     'id': _node.properties['id'],
     'username': username,
+    'address': _node.properties['address'],
     'name' : _node.properties['name'],
     'fatherName' : _node.properties['fatherName'],
     'voterId' : _node.properties['voterId'],

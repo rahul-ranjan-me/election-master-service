@@ -6,6 +6,17 @@ var express = require('express')
   , loginRequired = require('../middlewares/loginRequired')
   , dbUtils = require('../neo4j/dbUtils')
   , _ = require('lodash');
+/**
+* @swagger
+* definition:
+*   Level:
+*     type: object
+*     properties:
+*       id:
+*         type: string
+*       levelname:
+*         type: string
+*/
 
 /**
 * @swagger

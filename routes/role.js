@@ -9,6 +9,18 @@ var express = require('express')
 
 /**
 * @swagger
+* definition:
+*   Role:
+*     type: object
+*     properties:
+*       id:
+*         type: string
+*       rolename:
+*         type: string
+*/
+
+/**
+* @swagger
 * /api/v0/role:
 *   post:
 *     tags:

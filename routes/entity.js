@@ -9,6 +9,18 @@ var express = require('express')
 
 /**
 * @swagger
+* definition:
+*   Entity:
+*     type: object
+*     properties:
+*       id:
+*         type: string
+*       entityname:
+*         type: string
+*/
+
+/**
+* @swagger
 * /api/v0/entity:
 *   post:
 *     tags:

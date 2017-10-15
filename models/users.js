@@ -5,6 +5,9 @@ var randomstring = require("randomstring");
 var _ = require('lodash');
 var dbUtils = require('../neo4j/dbUtils');
 var User = require('../models/neo4j/user');
+var Level = require('../models/neo4j/level');
+var Role = require('../models/neo4j/role');
+var Entity = require('../models/neo4j/entity');
 var crypto = require('crypto');
 
 var register = function (dataToSend) {
@@ -29,6 +32,7 @@ var register = function (dataToSend) {
             }),
             name: dataToSend.name,
             fatherName: dataToSend.fatherName,
+            address: dataToSend.address,
             voterId: dataToSend.voterId,
             email: dataToSend.email,
             lokSabha: dataToSend.lokSabha,
@@ -78,8 +82,46 @@ function hashPassword(username, password) {
   return crypto.createHash('sha256').update(s).digest('hex');
 }
 
+var createRelations = function(session, username, levelname, rolename, entityname){
+  var query = 'Match (user:User {username:{username}})',
+      levelRelation,
+      roleRelation,
+      entityRelation
+
+  if(levelname){
+    levelRelation = query + ', (level: Level {levelname: {levelname}}) Create (user)-[:HAS_LEVEL]->(level)'
+  }
+  if(rolename){
+    roleRelation = query + ', (role: Role {rolename: {rolename}}) Create (user)-[:HAS_ROLE]->(role)'
+  }
+  if(entityname){
+    entityRelation = query + ', (entity: Entity {entityname: {entityname}}) Create (user)-[:VOLUNTEER_OF]->(entity)'
+  }
+
+  return session.run(levelRelation + ' return user', {username: username, levelname: levelname})
+    .then(result => {
+      return session.run(roleRelation + ' return user', {username: username, rolename: rolename})
+        .then(result => {
+          return session.run(entityRelation + ' return user', {username: username, entityname: entityname})
+            .then(result => {
+              return new User(result.records[0].get('user'));
+            })
+            .catch(error => {
+              throw {error: 'Error occured while creating entity relation', status: 400}
+            })
+        })
+        .catch(error => {
+          throw {error: 'Error occured while creating role relation', status: 400}
+        })
+    })
+    .catch(error => {
+      throw {error: 'Error occured while creating relation', status: 400}
+    })
+}
+
 module.exports = {
   register: register,
   me: me,
-  login: login
+  login: login,
+  createRelations: createRelations
 };

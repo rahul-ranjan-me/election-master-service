@@ -19,6 +19,28 @@ var express = require('express')
 *         type: string
 *       avatar:
 *         type: object
+*       name:
+*         type: string
+*       fatherName:
+*         type: string
+*       address:
+*         type: string
+*       voterId:
+*         type: string
+*       email:
+*         type: string
+*       lokSabha:
+*         type: string
+*       vidhanSabha:
+*         type: string
+*       pinCode:
+*         type: string
+*       twitterId:
+*         type: string
+*       facebookId:
+*         type: string
+*       originParty:
+*         type: string
 */
 
 /**
@@ -43,6 +65,8 @@ var express = require('express')
 *             name:
 *               type: string
 *             fatherName:
+*               type: string
+*             address:
 *               type: string
 *             voterId:
 *               type: string
@@ -75,6 +99,7 @@ router.post('/register', (req, res, next) => {
   , password : _.get(req.body, 'password')
   , name : _.get(req.body, 'name')
   , fatherName : _.get(req.body, 'fatherName')
+  , address : _.get(req.body, 'address')
   , voterId : _.get(req.body, 'voterId')
   , email : _.get(req.body, 'email')
   , lokSabha : _.get(req.body, 'lokSabha')
@@ -140,6 +165,63 @@ router.post('/login', (req, res, next) => {
     .then(response => writeResponse(res, response))
     .catch(next);
 });
+
+/**
+* @swagger
+* /api/v0/users/createRelations:
+*   post:
+*     tags:
+*     - users
+*     description: Login
+*     produces:
+*       - application/json
+*     parameters:
+*       - name: Authorization
+*         in: header
+*         type: string
+*         required: true
+*         description: Token (token goes here)
+*       - name: body
+*         in: body
+*         type: object
+*         schema:
+*           properties:
+*             username:
+*               type: string
+*             levelname:
+*               type: string
+*             rolename:
+*               type: string
+*             entityname:
+*               type: string
+*     responses:
+*       200:
+*         description: Volunteer relation added
+*         schema:
+*           properties:
+*             token:
+*               type: string
+*       400:
+*         description: invalid credentials
+*/
+
+router.post('/createRelations', (req, res, next) => {
+  loginRequired(req, res, () => {
+    var username = _.get(req.body, 'username')
+      , levelname = _.get(req.body, 'levelname')
+      , rolename = _.get(req.body, 'rolename')
+      , entityname = _.get(req.body, 'entityname');
+
+    if (!username) {
+      throw {error: 'Volunteer name is missing.', status: 400};
+    }
+    
+    Users.createRelations(dbUtils.getSession(req), username, levelname, rolename, entityname)
+      .then(response => writeResponse(res, response))
+      .catch(next);
+    
+  })
+})
 
 /**
 * @swagger
