@@ -90,6 +90,67 @@ var createEntity = function (session, entityname, levelname, partOfEntityName) {
 
 };
 
+var deleteEntityRelation = function(session, entityname, relationname) {
+  session.run('Match(entity:Entity {entityname: {entityname}}), (entity)-[r:'+relationname+']->() delete r return entity', {entityname: entityname, relationname: relationname})
+    .then(result => {
+      return new Entity(result.records[0].get('entity'));
+    })
+}
+
+var deleteEntityAllRelation = function(session, entityname) {
+  session.run('Match(entity:Entity {entityname: {entityname}}), (entity)-[r:PART_OF]->() delete r , (entity)-[s:HAS_LEVEL]->() delete s return entity', {entityname: entityname})
+    .then(result => {
+      return new Entity(result.records[0].get('entity'));
+    })
+}
+
+var getEntity = function(session, entityname, levelname, partOfEntityName){
+  var query = 'Match(entity:Entity {entityname: {entityname}})'
+  if(levelname){
+    query += ' ,(level:Level {levelname: {levelname}})'
+  }
+  if(partOfEntityName){
+    query += ' ,(partentity:Entity {entityname: {partOfEntityName}})'
+  }
+  if(levelname){
+    query += ', (entity)-[:HAS_LEVEL]-(level)'
+  }
+  if(partOfEntityName){
+    query += ', (entity)-[:PART_OF]-(partentity)'
+  }
+
+  return session.run(query+' return entity', {entityname: entityname, levelname: levelname, partOfEntityName: partOfEntityName})
+    .then(results => {
+      return results.records.map(r => new Entity(r.get('entity')));
+    })
+    .catch(error => {
+      console.log(error)
+      throw {error: "Some error occured", status: 400}
+    })
+}
+
+var updateEntity = function(session, entityname, updateentityname){
+  return session.run('Match (entity:Entity {entityname: {entityname}}) set entity+={entityname:{updateentityname}} return entity', {entityname: entityname, updateentityname: updateentityname})
+    .then(result => {
+      return new Entity(result.records[0].get('entity'));
+    })
+}
+
+var deleteEntity =  function(session, entityname) {
+  deleteEntityAllRelation(session, entityname)
+    .then(result => {
+      session.run('Match(entity:Entity {entityname: {entityname}})', {entityname: entityname})
+        .then(result => {
+          getEntity(session, entityname)
+        })
+    })
+}
+
 module.exports = {
-  createEntity: createEntity
+  createEntity: createEntity,
+  deleteEntityRelation: deleteEntityRelation,
+  deleteEntityAllRelation: deleteEntityAllRelation,
+  deleteEntity: deleteEntity,
+  getEntity: getEntity,
+  updateEntity: updateEntity
 };
