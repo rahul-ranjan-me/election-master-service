@@ -20,6 +20,7 @@ var Volunteer = module.exports = function (_node) {
     'twitterId' : _node.properties['twitterId'],
     'facebookId' : _node.properties['facebookId'],
     'originParty' : _node.properties['originParty'],
+    'userActive' : _node.properties['userActive'],
     'avatar': {
       'full_size': 'https://www.gravatar.com/avatar/' + md5(username) + '?d=retro'
     }

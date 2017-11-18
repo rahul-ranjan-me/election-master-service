@@ -108,6 +108,7 @@ router.post('/register', (req, res, next) => {
   , twitterId : _.get(req.body, 'twitterId')
   , facebookId : _.get(req.body, 'facebookId')
   , originParty : _.get(req.body, 'originParty')
+  , userActive: true
   }
 
   if (!dataToSend.username) {
@@ -260,5 +261,102 @@ router.get('/me', (req, res, next) => {
       .catch(next);
   })
 });
+
+
+/* ***************************************************
+   Invite user 
+   ************************************************** */
+
+/**
+* @swagger
+* /api/v0/users/invite:
+*   post:
+*     tags:
+*     - users
+*     description: invite a new user
+*     produces:
+*       - application/json
+*     parameters:
+*       - name: Authorization
+*         in: header
+*         type: string
+*         required: true
+*         description: Token (token goes here)
+*       - name: body
+*         in: body
+*         type: object
+*         schema:
+*           properties:
+*             phoneNumber:
+*               type: string
+*             name:
+*               type: string
+*             fatherName:
+*               type: string
+*             address:
+*               type: string
+*             voterId:
+*               type: string
+*             email:
+*               type: string
+*             lokSabha:
+*               type: string
+*             vidhanSabha:
+*               type: string
+*             pinCode:
+*               type: string
+*             twitterId:
+*               type: string
+*             facebookId:
+*               type: string
+*             originParty:
+*               type: string
+*     responses:
+*       201:
+*         description: Your new invitation
+*         schema:
+*           $ref: '#/definitions/User'
+*       400:
+*         description: Error message(s)
+*/
+router.post('/invite', (req, res, next) => {
+  loginRequired(req, res, () => {
+    var authHeader = req.headers['authorization'];
+    var match = authHeader.match(/^Token (\S+)/);
+    if (!match || !match[1]) {
+      throw {message: 'invalid authorization format. Follow `Token <token>`', status: 401};
+    }
+
+    var token = match[1];
+  
+    const dataToSend = {
+      session : dbUtils.getSession(req)
+    , username : _.get(req.body, 'phoneNumber')
+    , name : _.get(req.body, 'name')
+    , fatherName : _.get(req.body, 'fatherName')
+    , address : _.get(req.body, 'address')
+    , voterId : _.get(req.body, 'voterId')
+    , email : _.get(req.body, 'email')
+    , lokSabha : _.get(req.body, 'lokSabha')
+    , vidhanSabha : _.get(req.body, 'vidhanSabha')
+    , pinCode : _.get(req.body, 'pinCode')
+    , twitterId : _.get(req.body, 'twitterId')
+    , facebookId : _.get(req.body, 'facebookId')
+    , originParty : _.get(req.body, 'originParty')
+    , userActive: false
+    }
+
+    if (!dataToSend.username) {
+      throw {error: 'Phone number is required.', status: 400};
+    }
+    
+    Users.inviteUser(dataToSend, token)
+      .then(response => writeResponse(res, response, 201))
+      .catch(next);
+  });
+});
+
+
+
 
 module.exports = router;

@@ -21,7 +21,7 @@ var register = function (dataToSend) {
         throw {error: 'username already in use', status: 400}
       }
       else {
-        return session.run('CREATE (user:User {id: {id}, username: {username}, password: {password}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}}) RETURN user',
+        return session.run('CREATE (user:User {id: {id}, username: {username}, password: {password}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive:{userActive}}) RETURN user',
           {
             id: uuid.v4(),
             username: dataToSend.username,
@@ -40,7 +40,8 @@ var register = function (dataToSend) {
             pinCode: dataToSend.pinCode,
             twitterId: dataToSend.twitterId,
             facebookId: dataToSend.facebookId,
-            originParty: dataToSend.originParty
+            originParty: dataToSend.originParty,
+            userActive : dataToSend.userActive
           }
         ).then(results => {
             return new User(results.records[0].get('user'));
@@ -57,7 +58,7 @@ var me = function (session, apiKey) {
         throw {message: 'invalid authorization key', status: 401};
       }
       return new User(results.records[0].get('user'));
-    });
+    })
 };
 
 var login = function (session, username, password) {
@@ -119,9 +120,56 @@ var createRelations = function(session, username, levelname, rolename, entitynam
     })
 }
 
+var inviteUser = function(dataToSend, token){
+  var session = dataToSend.session
+    , username = dataToSend.username
+    
+  return session.run('MATCH (user:User {username: {username}}) RETURN user', {username: dataToSend.username})
+    .then(results => {
+      if (!_.isEmpty(results.records)) {
+        throw {error: 'Phone number already in use', status: 400}
+      }
+      else {
+        return session.run('CREATE (user:User {id: {id}, username: {username}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive: {userActive}}) RETURN user',
+          {
+            id: uuid.v4(),
+            username: dataToSend.username,
+            api_key : randomstring.generate({
+              length: 20,
+              charset: 'hex'
+            }),
+            name: dataToSend.name,
+            fatherName: dataToSend.fatherName,
+            address: dataToSend.address,
+            voterId: dataToSend.voterId,
+            email: dataToSend.email,
+            lokSabha: dataToSend.lokSabha,
+            vidhanSabha: dataToSend.vidhanSabha,
+            pinCode: dataToSend.pinCode,
+            twitterId: dataToSend.twitterId,
+            facebookId: dataToSend.facebookId,
+            originParty: dataToSend.originParty,
+            userActive : dataToSend.userActive
+          }
+        ).then(results => {
+            return me(session, token).then(response => {
+              return session.run('Match (user:User {username:{username}}), (inviteeUser:User {username: {inviteeUser} }) Create (user)-[:HAS_INVITED]->(inviteeUser) return inviteeUser', {username: response.username, inviteeUser: dataToSend.username})                
+                .then(result => {
+                  return new User(result.records[0].get('inviteeUser'));
+                })
+                .catch(error => {
+                  throw {error: 'Error occured while creating invitee relation', status: 400}
+                })
+            })
+        })
+      }
+    });
+}
+
 module.exports = {
   register: register,
   me: me,
   login: login,
-  createRelations: createRelations
+  createRelations: createRelations,
+  inviteUser: inviteUser
 };
