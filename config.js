@@ -20,7 +20,7 @@ nconf.env(['PORT', 'NODE_ENV'])
       alias: "neo4j",
       describe: "Use local or remote neo4j instance",
       demand: false,
-      default: "local"
+      default: "remote"
     }
   })
   .defaults({
