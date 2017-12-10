@@ -167,10 +167,29 @@ var inviteUser = function(dataToSend, token){
     });
 }
 
+var getAllInvitee = function (session, apiKey, userActive) {
+  return session.run('Match (:User {api_key:{api_key}})-[:HAS_INVITED]-(b) return b', {api_key: apiKey})
+    .then(results => {
+      var records = [];
+      results.records.map((record) => {
+        const userRecord = new User(record.get('b'));
+        if(userActive){
+          if(userRecord.userActive.toString() && userRecord.userActive.toString() == userActive){
+            records.push(userRecord)
+          }
+        }else{
+          records.push(userRecord)
+        }
+      })
+      return records;
+    })
+};
+
 module.exports = {
   register: register,
   me: me,
   login: login,
   createRelations: createRelations,
-  inviteUser: inviteUser
+  inviteUser: inviteUser,
+  getAllInvitee: getAllInvitee
 };

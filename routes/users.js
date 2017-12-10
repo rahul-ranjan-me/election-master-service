@@ -356,6 +356,49 @@ router.post('/invite', (req, res, next) => {
   });
 });
 
+/**
+* @swagger
+* /api/v0/users/invite:
+*   get:
+*     tags:
+*     - users
+*     description: Get all the invited users
+*     produces:
+*       - application/json
+*     parameters:
+*       - name: Authorization
+*         in: header
+*         type: string
+*         required: true
+*         description: Token (token goes here)
+*       - name: userActive
+*         in: query
+*         type: boolean
+*         required: false
+*         description: userActive
+*     responses:
+*       200:
+*         description: the user
+*         schema:
+*           $ref: '#/definitions/User'
+*       401:
+*         description: invalid / missing authentication
+*/
+router.get('/invite', (req, res, next) => {
+  loginRequired(req, res, () => {
+    var authHeader = req.headers['authorization'];
+    var match = authHeader.match(/^Token (\S+)/);
+    if (!match || !match[1]) {
+      throw {message: 'Invalid authorization format. Follow `Token <token>`', status: 401};
+    }
+
+    var token = match[1];
+    Users.getAllInvitee(dbUtils.getSession(req), token, req.query.userActive)
+      .then(response => writeResponse(res, response))
+      .catch(next);
+  })
+});
+
 
 
 
