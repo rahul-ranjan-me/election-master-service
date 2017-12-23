@@ -41,7 +41,8 @@ var register = function (dataToSend) {
             twitterId: dataToSend.twitterId,
             facebookId: dataToSend.facebookId,
             originParty: dataToSend.originParty,
-            userActive : dataToSend.userActive
+            userActive : dataToSend.userActive,
+            creationDate: new Date().valueOf()
           }
         ).then(results => {
             return new User(results.records[0].get('user'));
@@ -57,7 +58,9 @@ var me = function (session, apiKey) {
       if (_.isEmpty(results.records)) {
         throw {message: 'invalid authorization key', status: 401};
       }
-      return new User(results.records[0].get('user'));
+      let user = new User(results.records[0].get('user'))
+      user.creationDate = user.creationDate.toNumber()
+      return user;
     })
 };
 
