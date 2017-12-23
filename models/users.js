@@ -9,6 +9,10 @@ var Level = require('../models/neo4j/level');
 var Role = require('../models/neo4j/role');
 var Entity = require('../models/neo4j/entity');
 var crypto = require('crypto');
+var sinchSms = require('sinch-sms')({
+  key: 'e602cf6a-02b4-45dd-ba03-d6d0eadb4fb0', 
+  secret: 'QUKCHOX1MUKTZHKnbkQMlQ=='
+});
 
 var register = function (dataToSend) {
   var session = dataToSend.session
@@ -17,11 +21,42 @@ var register = function (dataToSend) {
     
   return session.run('MATCH (user:User {username: {username}}) RETURN user', {username: dataToSend.username})
     .then(results => {
-      if (!_.isEmpty(results.records)) {
+      if (!_.isEmpty(results.records) && new User(results.records[0].get('user')).userActive) {
         throw {error: 'username already in use', status: 400}
-      }
-      else {
-        return session.run('CREATE (user:User {id: {id}, username: {username}, password: {password}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive:{userActive}}) RETURN user',
+      }else if(!_.isEmpty(results.records)){
+        return session.run('MATCH (user:User {username: {username}}) set user.password={password}, user.name={name}, ' +
+           'user.fatherName={fatherName}, user.address={address}, user.voterId={voterId}, user.email={email}, user.lokSabha={lokSabha}, '+
+           'user.vidhanSabha={vidhanSabha}, user.pinCode={pinCode}, user.twitterId={twitterId}, user.facebookId={facebookId}, user.originParty={originParty}, '+
+           'user.creationDate={creationDate}, user.loginOTP={loginOTP} RETURN user', {
+              username: dataToSend.username,
+              password : hashPassword(dataToSend.username, dataToSend.password),
+              name: dataToSend.name,
+              fatherName: dataToSend.fatherName,
+              address: dataToSend.address ? dataToSend.address : '',
+              voterId: dataToSend.voterId,
+              email: dataToSend.email,
+              lokSabha: dataToSend.lokSabha,
+              vidhanSabha: dataToSend.vidhanSabha,
+              pinCode: dataToSend.pinCode,
+              twitterId: dataToSend.twitterId,
+              facebookId: dataToSend.facebookId,
+              originParty: dataToSend.originParty,
+              creationDate: new Date().valueOf(),
+              loginOTP: dataToSend.loginOTP
+            })
+          .then(results => {
+            sinchSms.send(dataToSend.username, 'Your OTP for registration is '+dataToSend.loginOTP).then(function(response) {
+              console.log(response)
+            }).fail(function(error) {
+              throw {error: 'Error while sending OTP. Please try again' , status: 400}
+            });
+            return  {api_key: _.get(results.records[0].get('user'), 'properties').api_key}
+          }
+        )
+
+        
+      }else {
+        return session.run('CREATE (user:User {id: {id}, username: {username}, password: {password}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive:{userActive}, creationDate:{creationDate}, loginOTP: {loginOTP}}) RETURN user',
           {
             id: uuid.v4(),
             username: dataToSend.username,
@@ -42,10 +77,11 @@ var register = function (dataToSend) {
             facebookId: dataToSend.facebookId,
             originParty: dataToSend.originParty,
             userActive : dataToSend.userActive,
-            creationDate: new Date().valueOf()
+            creationDate: new Date().valueOf(),
+            loginOTP: dataToSend.loginOTP
           }
         ).then(results => {
-            return new User(results.records[0].get('user'));
+            return  {api_key: _.get(results.records[0].get('user'), 'properties').api_key}
           }
         )
       }
@@ -59,13 +95,12 @@ var me = function (session, apiKey) {
         throw {message: 'invalid authorization key', status: 401};
       }
       let user = new User(results.records[0].get('user'))
-      user.creationDate = user.creationDate.toNumber()
+      delete user.loginOTP
       return user;
     })
 };
 
 var login = function (session, username, password) {
-  console.log(session, username, password)
   return session.run('MATCH (user:User {username: {username}}) RETURN user', {username: username})
     .then(results => {
         if (_.isEmpty(results.records)) {
@@ -75,6 +110,9 @@ var login = function (session, username, password) {
           var dbUser = _.get(results.records[0].get('user'), 'properties');
           if (dbUser.password != hashPassword(username, password)) {
             throw {error: 'Username or password is wrong', status: 400}
+          }
+          if(!dbUser.userActive){
+            throw {error: 'User is not activated', status: 400}
           }
           return {token: _.get(dbUser, 'api_key')};
         }
@@ -134,7 +172,7 @@ var inviteUser = function(dataToSend, token){
         throw {error: 'Phone number already in use', status: 400}
       }
       else {
-        return session.run('CREATE (user:User {id: {id}, username: {username}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive: {userActive}}) RETURN user',
+        return session.run('CREATE (user:User {id: {id}, username: {username}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive: {userActive} }) RETURN user',
           {
             id: uuid.v4(),
             username: dataToSend.username,
@@ -159,7 +197,14 @@ var inviteUser = function(dataToSend, token){
             return me(session, token).then(response => {
               return session.run('Match (user:User {username:{username}}), (inviteeUser:User {username: {inviteeUser} }) Create (user)-[:HAS_INVITED]->(inviteeUser) return inviteeUser', {username: response.username, inviteeUser: dataToSend.username})                
                 .then(result => {
-                  return new User(result.records[0].get('inviteeUser'));
+                  var curUser = new User(results.records[0].get('user'));
+                  var inviteeUser = new User(result.records[0].get('inviteeUser'));
+                  var apiKey = _.get(result.records[0].get('inviteeUser'), 'properties').api_key
+                  sinchSms.send(inviteeUser.username, 'You have been invited to join our election master application by '+curUser.name+'. Please follow url: https://election-master.herokuapp.com/signup/'+apiKey).then(function(response) {
+                    return inviteeUser
+                  }).fail(function(error) {
+                    throw {error: 'Error occured while sending invite. You can manually ask invitee to use following link http://localhost:3000/signup/'+apiKey , status: 400}
+                  });
                 })
                 .catch(error => {
                   throw {error: 'Error occured while creating invitee relation', status: 400}
@@ -176,6 +221,7 @@ var getAllInvitee = function (session, apiKey, userActive) {
       var records = [];
       results.records.map((record) => {
         const userRecord = new User(record.get('b'));
+        delete userRecord.loginOTP
         if(userActive){
           if(userRecord.userActive.toString() && userRecord.userActive.toString() == userActive){
             records.push(userRecord)
@@ -188,11 +234,33 @@ var getAllInvitee = function (session, apiKey, userActive) {
     })
 };
 
+var verify = function(dataToSend, apiKey){
+  var session = dataToSend.session
+    , loginOTP = dataToSend.loginOTP
+  
+  return session.run('MATCH (user:User {api_key: {api_key}}) RETURN user', {api_key: apiKey})
+    .then(results => {
+      if (_.isEmpty(results.records)) {
+        throw {message: 'Invalid user', status: 400};
+      }
+      let savedLoginOTP = _.get(results.records[0].get('user'), 'properties').loginOTP
+      
+      if(savedLoginOTP === loginOTP){
+        return session.run('MATCH (user:User {api_key: {api_key}}) remove user.loginOTP set user.userActive=true RETURN user', {api_key: apiKey})
+          .then((res) => { return {message:'OTP Verified', status: 'success' } })
+      }
+
+      throw {message: 'Invalid OTP', status: 400};
+    })
+
+}
+
 module.exports = {
   register: register,
   me: me,
   login: login,
   createRelations: createRelations,
   inviteUser: inviteUser,
-  getAllInvitee: getAllInvitee
+  getAllInvitee: getAllInvitee,
+  verify: verify
 };

@@ -108,7 +108,8 @@ router.post('/register', (req, res, next) => {
   , twitterId : _.get(req.body, 'twitterId')
   , facebookId : _.get(req.body, 'facebookId')
   , originParty : _.get(req.body, 'originParty')
-  , userActive: true
+  , userActive: false
+  , loginOTP: Math.floor(100000 + Math.random() * 900000)
   }
 
   if (!dataToSend.username) {
@@ -356,6 +357,57 @@ router.post('/invite', (req, res, next) => {
   });
 });
 
+
+/* ***************************************************
+   Verify user 
+   ************************************************** */
+
+/**
+* @swagger
+* /api/v0/users/verify/{id}:
+*   post:
+*     tags:
+*     - users
+*     description: Verify a new user
+*     produces:
+*       - application/json
+*     parameters:
+*       - in: path
+*         name: id
+*         required: true
+*         description: api key user to get
+*       - name: body
+*         in: body
+*         type: object
+*         schema:
+*           properties:
+*             loginOTP:
+*               type: number
+*     responses:
+*       201:
+*         description: Verification successful
+*         schema:
+*           $ref: '#/definitions/User'
+*       400:
+*         description: Error message(s)
+*/
+router.post('/verify/:id', (req, res, next) => {
+    var token = req.params.id;
+
+    const dataToSend = {
+      session : dbUtils.getSession(req)
+    , loginOTP : _.get(req.body, 'loginOTP')
+    }
+
+    if (!dataToSend.loginOTP) {
+      throw {error: 'OTP is required.', status: 400};
+    }
+    
+    Users.verify(dataToSend, token)
+      .then(response => writeResponse(res, response, 201))
+      .catch(next);
+});
+
 /**
 * @swagger
 * /api/v0/users/invite:
@@ -398,8 +450,5 @@ router.get('/invite', (req, res, next) => {
       .catch(next);
   })
 });
-
-
-
 
 module.exports = router;

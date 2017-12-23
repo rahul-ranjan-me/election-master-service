@@ -22,6 +22,7 @@ var Volunteer = module.exports = function (_node) {
     'originParty' : _node.properties['originParty'],
     'userActive' : _node.properties['userActive'],
     'creationDate' : _node.properties['creationDate'],
+    'loginOTP': _node.properties['loginOTP'],
     'avatar': {
       'full_size': 'https://www.gravatar.com/avatar/' + md5(username) + '?d=retro'
     }
