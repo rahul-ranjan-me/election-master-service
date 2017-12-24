@@ -18,7 +18,6 @@ var register = function (dataToSend) {
   var session = dataToSend.session
     , username = dataToSend.username
     , password = dataToSend.password
-    
   return session.run('MATCH (user:User {username: {username}}) RETURN user', {username: dataToSend.username})
     .then(results => {
       if (!_.isEmpty(results.records) && new User(results.records[0].get('user')).userActive) {
@@ -81,6 +80,11 @@ var register = function (dataToSend) {
             loginOTP: dataToSend.loginOTP
           }
         ).then(results => {
+            sinchSms.send(dataToSend.username, 'Your OTP for registration is '+dataToSend.loginOTP).then(function(response) {
+              console.log(response)
+            }).fail(function(error) {
+              throw {error: 'Error while sending OTP. Please try again' , status: 400}
+            });
             return  {api_key: _.get(results.records[0].get('user'), 'properties').api_key}
           }
         )
