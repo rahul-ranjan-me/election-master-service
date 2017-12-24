@@ -14,6 +14,53 @@ var sinchSms = require('sinch-sms')({
   secret: 'QUKCHOX1MUKTZHKnbkQMlQ=='
 });
 
+function dataToSendRegistration(dataToSend, whetherRegistration, isFinal){
+  const initData = {
+        username: dataToSend.username,
+        password : hashPassword(dataToSend.username, dataToSend.password),
+        name: dataToSend.name,
+        fatherName: dataToSend.fatherName,
+        address: dataToSend.address ? dataToSend.address : '',
+        voterId: dataToSend.voterId,
+        email: dataToSend.email,
+        lokSabha: dataToSend.lokSabha,
+        vidhanSabha: dataToSend.vidhanSabha,
+        pinCode: dataToSend.pinCode,
+        twitterId: dataToSend.twitterId,
+        facebookId: dataToSend.facebookId,
+        originParty: dataToSend.originParty,
+        userActive: dataToSend.userActive
+      },
+      registration = {
+        creationDate: new Date().valueOf(),
+        loginOTP: dataToSend.loginOTP
+      },
+      finalRegistration = {
+          id: uuid.v4(),
+          api_key : randomstring.generate({
+            length: 20,
+            charset: 'hex'
+          })
+        }
+  if(whetherRegistration && isFinal){
+    return _.extend({}, finalRegistration, initData, registration)
+  }else if(whetherRegistration){
+    return _.extend({}, initData, registration)
+  }else if(!whetherRegistration){
+    return _.extend({}, finalRegistration, initData)
+  }
+  return initData;
+}
+
+function sendSMS(number, successMessage, errorMessage, callback){
+  sinchSms.send(number, successMessage).then(function(response) {
+    if(callback) callback()
+  }).fail(function(error) {
+    throw {error: errorMessage, status: 400}
+  });
+}
+
+
 var register = function (dataToSend) {
   var session = dataToSend.session
     , username = dataToSend.username
@@ -26,65 +73,19 @@ var register = function (dataToSend) {
         return session.run('MATCH (user:User {username: {username}}) set user.password={password}, user.name={name}, ' +
            'user.fatherName={fatherName}, user.address={address}, user.voterId={voterId}, user.email={email}, user.lokSabha={lokSabha}, '+
            'user.vidhanSabha={vidhanSabha}, user.pinCode={pinCode}, user.twitterId={twitterId}, user.facebookId={facebookId}, user.originParty={originParty}, '+
-           'user.creationDate={creationDate}, user.loginOTP={loginOTP} RETURN user', {
-              username: dataToSend.username,
-              password : hashPassword(dataToSend.username, dataToSend.password),
-              name: dataToSend.name,
-              fatherName: dataToSend.fatherName,
-              address: dataToSend.address ? dataToSend.address : '',
-              voterId: dataToSend.voterId,
-              email: dataToSend.email,
-              lokSabha: dataToSend.lokSabha,
-              vidhanSabha: dataToSend.vidhanSabha,
-              pinCode: dataToSend.pinCode,
-              twitterId: dataToSend.twitterId,
-              facebookId: dataToSend.facebookId,
-              originParty: dataToSend.originParty,
-              creationDate: new Date().valueOf(),
-              loginOTP: dataToSend.loginOTP
-            })
+           'user.creationDate={creationDate}, user.loginOTP={loginOTP} RETURN user', dataToSendRegistration(dataToSend, true))
           .then(results => {
-            sinchSms.send(dataToSend.username, 'Your OTP for registration is '+dataToSend.loginOTP).then(function(response) {
-              console.log(response)
-            }).fail(function(error) {
-              throw {error: 'Error while sending OTP. Please try again' , status: 400}
-            });
+            sendSMS(dataToSend.username, 'Your OTP for registration is '+dataToSend.loginOTP, 'Error while sending OTP. Please try again')
             return  {api_key: _.get(results.records[0].get('user'), 'properties').api_key}
           }
         )
-
-        
       }else {
-        return session.run('CREATE (user:User {id: {id}, username: {username}, password: {password}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive:{userActive}, creationDate:{creationDate}, loginOTP: {loginOTP}}) RETURN user',
-          {
-            id: uuid.v4(),
-            username: dataToSend.username,
-            password : hashPassword(dataToSend.username, dataToSend.password),
-            api_key : randomstring.generate({
-              length: 20,
-              charset: 'hex'
-            }),
-            name: dataToSend.name,
-            fatherName: dataToSend.fatherName,
-            address: dataToSend.address,
-            voterId: dataToSend.voterId,
-            email: dataToSend.email,
-            lokSabha: dataToSend.lokSabha,
-            vidhanSabha: dataToSend.vidhanSabha,
-            pinCode: dataToSend.pinCode,
-            twitterId: dataToSend.twitterId,
-            facebookId: dataToSend.facebookId,
-            originParty: dataToSend.originParty,
-            userActive : dataToSend.userActive,
-            creationDate: new Date().valueOf(),
-            loginOTP: dataToSend.loginOTP
-          }
-        ).then(results => {
-            sinchSms.send(dataToSend.username, 'Your OTP for registration is '+dataToSend.loginOTP).then(function(response) {
-              console.log(response)
-            }).fail(function(error) {
-              throw {error: 'Error while sending OTP. Please try again' , status: 400}
-            });
+        return session.run('CREATE (user:User {id: {id}, username: {username}, password: {password}, api_key: {api_key}, '+
+        'name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, '+
+        'pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive:{userActive}, '+
+        'creationDate:{creationDate}, loginOTP: {loginOTP}, userActive:{userActive}}) RETURN user', dataToSendRegistration(dataToSend, true, true))
+         .then(results => {
+            sendSMS(dataToSend.username, 'Your OTP for registration is '+dataToSend.loginOTP, 'Error while sending OTP. Please try again')
             return  {api_key: _.get(results.records[0].get('user'), 'properties').api_key}
           }
         )
@@ -176,39 +177,20 @@ var inviteUser = function(dataToSend, token){
         throw {error: 'Phone number already in use', status: 400}
       }
       else {
-        return session.run('CREATE (user:User {id: {id}, username: {username}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive: {userActive} }) RETURN user',
-          {
-            id: uuid.v4(),
-            username: dataToSend.username,
-            api_key : randomstring.generate({
-              length: 20,
-              charset: 'hex'
-            }),
-            name: dataToSend.name,
-            fatherName: dataToSend.fatherName,
-            address: dataToSend.address,
-            voterId: dataToSend.voterId,
-            email: dataToSend.email,
-            lokSabha: dataToSend.lokSabha,
-            vidhanSabha: dataToSend.vidhanSabha,
-            pinCode: dataToSend.pinCode,
-            twitterId: dataToSend.twitterId,
-            facebookId: dataToSend.facebookId,
-            originParty: dataToSend.originParty,
-            userActive : dataToSend.userActive
-          }
-        ).then(results => {
+        return session.run('CREATE (user:User {id: {id}, username: {username}, api_key: {api_key}, name: {name}, fatherName: {fatherName}, '+
+        'voterId: {voterId}, email: {email}, lokSabha: {lokSabha}, vidhanSabha: {vidhanSabha}, pinCode : {pinCode}, twitterId : {twitterId}, '+
+        'facebookId: {facebookId}, originParty: {originParty}, userActive: {userActive} }) RETURN user', dataToSendRegistration(dataToSend))
+        .then(results => {
             return me(session, token).then(response => {
-              return session.run('Match (user:User {username:{username}}), (inviteeUser:User {username: {inviteeUser} }) Create (user)-[:HAS_INVITED]->(inviteeUser) return inviteeUser', {username: response.username, inviteeUser: dataToSend.username})                
+              return session.run('Match (user:User {username:{username}}), (inviteeUser:User {username: {inviteeUser} }) '+
+              'Create (user)-[:HAS_INVITED]->(inviteeUser) return inviteeUser', {username: response.username, inviteeUser: dataToSend.username})                
                 .then(result => {
-                  var curUser = new User(results.records[0].get('user'));
-                  var inviteeUser = new User(result.records[0].get('inviteeUser'));
-                  var apiKey = _.get(result.records[0].get('inviteeUser'), 'properties').api_key
-                  sinchSms.send(inviteeUser.username, 'You have been invited to join our election master application by '+curUser.name+'. Please follow url: https://election-master.herokuapp.com/signup/'+apiKey).then(function(response) {
-                    return inviteeUser
-                  }).fail(function(error) {
-                    throw {error: 'Error occured while sending invite. You can manually ask invitee to use following link http://localhost:3000/signup/'+apiKey , status: 400}
-                  });
+                  var curUser = new User(results.records[0].get('user')),
+                      inviteeUser = new User(result.records[0].get('inviteeUser')),
+                      apiKey = _.get(result.records[0].get('inviteeUser'), 'properties').api_key
+
+                  sendSMS(inviteeUser.username, 'You have been invited to join our election master application by '+curUser.name+'. Please follow url: https://election-master.herokuapp.com/signup/'+apiKey, 'Error occured while sending invite. You can manually ask invitee to use following link http://localhost:3000/signup/'+apiKey)
+                  return inviteeUser
                 })
                 .catch(error => {
                   throw {error: 'Error occured while creating invitee relation', status: 400}
