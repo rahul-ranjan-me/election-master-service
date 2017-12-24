@@ -9,10 +9,8 @@ var Level = require('../models/neo4j/level');
 var Role = require('../models/neo4j/role');
 var Entity = require('../models/neo4j/entity');
 var crypto = require('crypto');
-var sinchSms = require('sinch-sms')({
-  key: 'e602cf6a-02b4-45dd-ba03-d6d0eadb4fb0', 
-  secret: 'QUKCHOX1MUKTZHKnbkQMlQ=='
-});
+var sendSMS = require('../helpers/senders').sendSMS;
+var sendEmail = require('../helpers/senders').sendEmail;
 
 function dataToSendRegistration(dataToSend, whetherRegistration, isFinal){
   const initData = {
@@ -52,19 +50,13 @@ function dataToSendRegistration(dataToSend, whetherRegistration, isFinal){
   return initData;
 }
 
-function sendSMS(number, successMessage, errorMessage, callback){
-  sinchSms.send(number, successMessage).then(function(response) {
-    if(callback) callback()
-  }).fail(function(error) {
-    throw {error: errorMessage, status: 400}
-  });
-}
-
-
 var register = function (dataToSend) {
   var session = dataToSend.session
     , username = dataToSend.username
     , password = dataToSend.password
+    , successMessage = 'Your OTP for registration is '+dataToSend.loginOTP
+    , errorMessage = 'Error while sending OTP. Please try again'
+    , subject = 'Election Master India : OTP'
   return session.run('MATCH (user:User {username: {username}}) RETURN user', {username: dataToSend.username})
     .then(results => {
       if (!_.isEmpty(results.records) && new User(results.records[0].get('user')).userActive) {
@@ -75,7 +67,11 @@ var register = function (dataToSend) {
            'user.vidhanSabha={vidhanSabha}, user.pinCode={pinCode}, user.twitterId={twitterId}, user.facebookId={facebookId}, user.originParty={originParty}, '+
            'user.creationDate={creationDate}, user.loginOTP={loginOTP} RETURN user', dataToSendRegistration(dataToSend, true))
           .then(results => {
-            sendSMS(dataToSend.username, 'Your OTP for registration is '+dataToSend.loginOTP, 'Error while sending OTP. Please try again')
+            
+            sendSMS(dataToSend.username, successMessage, errorMessage)
+            if(dataToSend.email){
+              sendEmail(dataToSend.email, subject, successMessage, errorMessage)
+            }
             return  {api_key: _.get(results.records[0].get('user'), 'properties').api_key}
           }
         )
@@ -85,7 +81,10 @@ var register = function (dataToSend) {
         'pinCode : {pinCode}, twitterId : {twitterId}, facebookId: {facebookId}, originParty: {originParty}, userActive:{userActive}, '+
         'creationDate:{creationDate}, loginOTP: {loginOTP}, userActive:{userActive}}) RETURN user', dataToSendRegistration(dataToSend, true, true))
          .then(results => {
-            sendSMS(dataToSend.username, 'Your OTP for registration is '+dataToSend.loginOTP, 'Error while sending OTP. Please try again')
+            sendSMS(dataToSend.username, successMessage, errorMessage)
+            if(dataToSend.email){
+              sendEmail(dataToSend.email, subject, successMessage, errorMessage)
+            }
             return  {api_key: _.get(results.records[0].get('user'), 'properties').api_key}
           }
         )
@@ -187,9 +186,17 @@ var inviteUser = function(dataToSend, token){
                 .then(result => {
                   var curUser = new User(results.records[0].get('user')),
                       inviteeUser = new User(result.records[0].get('inviteeUser')),
-                      apiKey = _.get(result.records[0].get('inviteeUser'), 'properties').api_key
+                      apiKey = _.get(result.records[0].get('inviteeUser'), 'properties').api_key,
+                      subject = "Election Master India: Invitation",
+                      successMessage = 'You have been invited to join our election master application by '+response.name+'. Please follow url: https://election-master.herokuapp.com/signup/'+apiKey,
+                      errorMessage = 'Error occured while sending invite. You can manually ask invitee to use following link http://localhost:3000/signup/'+apiKey
 
-                  sendSMS(inviteeUser.username, 'You have been invited to join our election master application by '+curUser.name+'. Please follow url: https://election-master.herokuapp.com/signup/'+apiKey, 'Error occured while sending invite. You can manually ask invitee to use following link http://localhost:3000/signup/'+apiKey)
+                  sendSMS(inviteeUser.username, successMessage, errorMessage)
+
+                  if(inviteeUser.email){
+                    sendEmail(inviteeUser.email, subject, successMessage, errorMessage)
+                  }
+                  
                   return inviteeUser
                 })
                 .catch(error => {
