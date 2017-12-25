@@ -99,6 +99,9 @@ var me = function (session, apiKey) {
         throw {message: 'invalid authorization key', status: 401};
       }
       let user = new User(results.records[0].get('user'))
+      if(typeof user.creationDate !== 'number' && user.creationDate){
+        user.creationDate = user.creationDate.toNumber()
+      }
       delete user.loginOTP
       return user;
     })

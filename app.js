@@ -15,6 +15,7 @@ var users = require('./routes/users')
   , level = require('./routes/level')
   , role = require('./routes/role')
   , entity = require('./routes/entity')
+  , event = require('./routes/event')
 
 var app = express()
   , api = express();
@@ -74,6 +75,7 @@ api.use('/party', party)
 api.use('/level', level)
 api.use('/role', role)
 api.use('/entity', entity)
+api.use('/event', event)
 
 //api error handler
 api.use(function(err, req, res, next) {
