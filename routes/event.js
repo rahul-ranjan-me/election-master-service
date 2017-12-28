@@ -105,4 +105,46 @@ router.post('/', (req, res, next) => {
   })
 });
 
+/**
+* @swagger
+* /api/v0/event:
+*   get:
+*     tags:
+*     - event
+*     description: Get events
+*     produces:
+*       - application/json
+*     parameters:
+*       - name: Authorization
+*         in: header
+*         type: string
+*         required: true
+*         description: Token (token goes here)
+*     responses:
+*       200:
+*         description: the event
+*         schema:
+*           $ref: '#/definitions/event'
+*       401:
+*         description: invalid / missing authentication
+*       400:
+*         description: Event exist or missing
+*/
+
+router.get('/', (req, res, next) => {
+  loginRequired(req, res, () => {
+    var authHeader = req.headers['authorization'];
+    var match = authHeader.match(/^Token (\S+)/);
+    if (!match || !match[1]) {
+      throw {message: 'invalid authorization format. Follow `Token <token>`', status: 401};
+    }
+
+    var token = match[1];
+
+    Events.getEvents(dbUtils.getSession(req), token)
+      .then(response => writeResponse(res, response))
+      .catch(next);
+  })
+});
+
 module.exports = router;

@@ -4,6 +4,7 @@ var uuid = require('node-uuid');
 var _ = require('lodash');
 var dbUtils = require('../neo4j/dbUtils');
 var Event = require('../models/neo4j/event');
+var User = require('../models/neo4j/user');
 
 var create = function (session, dataToSend) {
   return session.run('MATCH (event:Event {name: {name}}) RETURN event', {name: dataToSend.name})
@@ -32,6 +33,48 @@ var create = function (session, dataToSend) {
     });
 };
 
+var getEvents = function(session, token) {
+  let events = {
+    myEvents: []
+  , parentEvents: []
+  , childEvents: []
+  }
+  return session.run('Match (user:User {api_key:{token}})-[r:EVENT_CREATED]-(event:Event) return event', {token: token})
+    .then(results => {
+      events.myEvents.push(results.records.map(r => new Event(r.get('event'))))
+      return session.run('Match (user:User {api_key:{token}})<-[r:HAS_INVITED*]-(parentUser:User) return parentUser', {token: token})
+      .then(results => {
+        for (var i=0; i<results.records.length; i++){
+          var curRecord = results.records[i]
+          var curUser = new User(curRecord.get('parentUser'))
+          return session.run('Match (user:User {username:{username}})-[r:EVENT_CREATED]-(myEvent:Event) return myEvent', {username: curUser.username})
+            .then(results => {
+              console.log(results.records, curUser)
+              events.parentEvents.push({[curUser.username]: []})
+              //events.parentEvents[curUser.username].push(results.records.map(r => new Event(r.get('event'))))
+            })
+        }
+        return events
+
+        
+        // results.records.each(r => {
+        //   var curUser = new User(r.get('parentUser'))
+        //   return session.run('Match (user:User {username:{username}})-[r:EVENT_CREATED]-(myEvent:Event) return myEvent', {username: curUser.username})
+        //     .then(results => {
+        //       //-[r:EVENT_CREATED]-(event:Event) 
+        //       console.log(curUser)
+        //       events.parentEvents.push({[parentUser.username]: []})
+        //       //events.parentEvents[parentUser.username].push(results.records.map(r => new Event(r.get('event'))))
+              
+        //     })
+        //     .catch(err => console.log(err))
+        // })
+        
+      })
+    })
+}
+
 module.exports = {
   create: create
+, getEvents: getEvents
 };
