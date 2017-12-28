@@ -85,6 +85,7 @@ router.post('/', (req, res, next) => {
     , eventOrganizer: _.get(req.body, 'eventOrganizer')
     , eventVolunteerRequired: _.get(req.body, 'eventVolunteerRequired')
     , eventVenue: _.get(req.body, 'eventVenue')
+    , eventDate: _.get(req.body, 'eventDate')
     }
 
     if (!dataToSend.name) {
@@ -97,6 +98,8 @@ router.post('/', (req, res, next) => {
       throw {error: 'Event volunteer is missing.', status: 400};
     } else if (!dataToSend.eventVenue) {
       throw {error: 'Event venue is missing.', status: 400};
+    } else if (!dataToSend.eventDate) {
+      throw {error: 'Event date is missing.', status: 400};
     }
 
     Events.create(dbUtils.getSession(req), dataToSend)
