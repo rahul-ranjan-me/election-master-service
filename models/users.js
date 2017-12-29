@@ -255,7 +255,11 @@ var searchPeople = function(session, query){
   return session.run(`Match (user:User) where toLower(user.name) =~'.*${queryToSearch}.*' return user`, {query: query})
     .then(results => {
       return results.records.map(curUser => {
-        return new User(curUser.get('user'));
+        var curUserDetail = new User(curUser.get('user'));
+        if(typeof curUserDetail.creationDate !== 'number' && curUserDetail.creationDate){
+          curUserDetail.creationDate = curUserDetail.creationDate.toNumber()
+        }
+        return curUserDetail
       })
     })
 }
@@ -263,9 +267,11 @@ var searchPeople = function(session, query){
 var getUserDetails  = function(session, query){
   return session.run(`Match (user:User {username: {query}}) return user`, {query: query})
     .then(results => {
-      var userDetails = new User(results.records[0].get('user'))
-      userDetails.creationDate = userDetails.creationDate.toNumber()
-      return userDetails
+      var user = new User(results.records[0].get('user'))
+      if(typeof user.creationDate !== 'number' && user.creationDate){
+        user.creationDate = user.creationDate.toNumber()
+      }
+      return user
     })
 }
 
