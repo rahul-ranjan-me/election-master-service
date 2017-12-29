@@ -275,6 +275,27 @@ var getUserDetails  = function(session, query){
     })
 }
 
+var getHierarchy  = function(session, username){
+  var hierarchy = {
+        parentUser: {}
+      , childUser: []
+      }
+
+  return session.run(`Match (user:User {username:{username}})<-[r:HAS_INVITED]-(n:User) return n`, {username: username})
+    .then(results => {
+      if(!_.isEmpty(results.records)){
+        hierarchy.parentUser = new User(results.records[0].get('n'))
+      }
+      return session.run(`Match (user:User {username:{username}})-[r:HAS_INVITED]->(n:User) return n`, {username: username})
+        .then(results => {
+          if(!_.isEmpty(results.records)){
+            hierarchy.childUser = results.records.map(user => new User(user.get('n')))
+          }
+          return hierarchy
+        })
+    })
+}
+
 module.exports = {
   register: register,
   me: me,
@@ -284,5 +305,6 @@ module.exports = {
   getAllInvitee: getAllInvitee,
   verify: verify,
   searchPeople: searchPeople,
-  getUserDetails: getUserDetails
+  getUserDetails: getUserDetails,
+  getHierarchy: getHierarchy
 };
