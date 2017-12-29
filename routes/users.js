@@ -451,4 +451,94 @@ router.get('/invite', (req, res, next) => {
   })
 });
 
+
+/**
+* @swagger
+* /api/v0/users/searchPeople/{query}:
+*   get:
+*     tags:
+*     - users
+*     description: Get your user
+*     produces:
+*       - application/json
+*     parameters:
+*       - name: Authorization
+*         in: header
+*         type: string
+*         required: true
+*         description: Token (token goes here)
+*       - in: path
+*         name: query
+*         required: true
+*         description: search query to find
+*     responses:
+*       200:
+*         description: the user
+*         schema:
+*           $ref: '#/definitions/User'
+*       401:
+*         description: invalid / missing authentication
+*/
+router.get('/searchPeople/:query', (req, res, next) => {
+  loginRequired(req, res, () => {
+    var authHeader = req.headers['authorization']
+      , match = authHeader.match(/^Token (\S+)/);
+    if (!match || !match[1]) {
+      throw {message: 'invalid authorization format. Follow `Token <token>`', status: 401};
+    }
+
+    var token = match[1]
+      , query = req.params.query;
+
+    Users.searchPeople(dbUtils.getSession(req), query)
+      .then(response => writeResponse(res, response))
+      .catch(next);
+  })
+});
+
+
+/**
+* @swagger
+* /api/v0/users/getUserDetails/{query}:
+*   get:
+*     tags:
+*     - users
+*     description: Get your user
+*     produces:
+*       - application/json
+*     parameters:
+*       - name: Authorization
+*         in: header
+*         type: string
+*         required: true
+*         description: Token (token goes here)
+*       - in: path
+*         name: query
+*         required: true
+*         description: search query to find
+*     responses:
+*       200:
+*         description: the user
+*         schema:
+*           $ref: '#/definitions/User'
+*       401:
+*         description: invalid / missing authentication
+*/
+router.get('/getUserDetails/:query', (req, res, next) => {
+  loginRequired(req, res, () => {
+    var authHeader = req.headers['authorization']
+      , match = authHeader.match(/^Token (\S+)/);
+    if (!match || !match[1]) {
+      throw {message: 'invalid authorization format. Follow `Token <token>`', status: 401};
+    }
+
+    var token = match[1]
+      , query = req.params.query;
+
+    Users.getUserDetails(dbUtils.getSession(req), query)
+      .then(response => writeResponse(res, response))
+      .catch(next);
+  })
+});
+
 module.exports = router;

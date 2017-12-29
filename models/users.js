@@ -248,7 +248,25 @@ var verify = function(dataToSend, apiKey){
 
       throw {message: 'Invalid OTP', status: 400};
     })
+}
 
+var searchPeople = function(session, query){
+  let queryToSearch = query.toLowerCase()
+  return session.run(`Match (user:User) where toLower(user.name) =~'.*${queryToSearch}.*' return user`, {query: query})
+    .then(results => {
+      return results.records.map(curUser => {
+        return new User(curUser.get('user'));
+      })
+    })
+}
+
+var getUserDetails  = function(session, query){
+  return session.run(`Match (user:User {username: {query}}) return user`, {query: query})
+    .then(results => {
+      var userDetails = new User(results.records[0].get('user'))
+      userDetails.creationDate = userDetails.creationDate.toNumber()
+      return userDetails
+    })
 }
 
 module.exports = {
@@ -258,5 +276,7 @@ module.exports = {
   createRelations: createRelations,
   inviteUser: inviteUser,
   getAllInvitee: getAllInvitee,
-  verify: verify
+  verify: verify,
+  searchPeople: searchPeople,
+  getUserDetails: getUserDetails
 };
